@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+
+
+
+<title>BERTによる科研費審査区分の推定</title>
+
+<script src="site_libs/header-attrs-2.20/header-attrs.js"></script>
+<script src="site_libs/jquery-3.6.0/jquery-3.6.0.min.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link href="site_libs/bootstrap-3.3.5/css/flatly.min.css" rel="stylesheet" />
+<script src="site_libs/bootstrap-3.3.5/js/bootstrap.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/html5shiv.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/respond.min.js"></script>
+<style>h1 {font-size: 34px;}
+       h1.title {font-size: 38px;}
+       h2 {font-size: 30px;}
+       h3 {font-size: 24px;}
+       h4 {font-size: 18px;}
+       h5 {font-size: 16px;}
+       h6 {font-size: 12px;}
+       code {color: inherit; background-color: rgba(0, 0, 0, 0.04);}
+       pre:not([class]) { background-color: white }</style>
+<script src="site_libs/navigation-1.1/tabsets.js"></script>
+<link href="site_libs/highlightjs-9.12.0/default.css" rel="stylesheet" />
+<script src="site_libs/highlightjs-9.12.0/highlight.js"></script>
+<script src="site_libs/htmlwidgets-1.6.2/htmlwidgets.js"></script>
+<link href="site_libs/datatables-css-0.0.0/datatables-crosstalk.css" rel="stylesheet" />
+<script src="site_libs/datatables-binding-0.27/datatables.js"></script>
+<link href="site_libs/dt-core-1.12.1/css/jquery.dataTables.min.css" rel="stylesheet" />
+<link href="site_libs/dt-core-1.12.1/css/jquery.dataTables.extra.css" rel="stylesheet" />
+<script src="site_libs/dt-core-1.12.1/js/jquery.dataTables.min.js"></script>
+<link href="site_libs/crosstalk-1.2.0/css/crosstalk.min.css" rel="stylesheet" />
+<script src="site_libs/crosstalk-1.2.0/js/crosstalk.min.js"></script>
+<link href="site_libs/font-awesome-5.1.0/css/all.css" rel="stylesheet" />
+<link href="site_libs/font-awesome-5.1.0/css/v4-shims.css" rel="stylesheet" />
+
+<style type="text/css">
+  code{white-space: pre-wrap;}
+  span.smallcaps{font-variant: small-caps;}
+  span.underline{text-decoration: underline;}
+  div.column{display: inline-block; vertical-align: top; width: 50%;}
+  div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+  ul.task-list{list-style: none;}
+    </style>
+
+<style type="text/css">code{white-space: pre;}</style>
+<script type="text/javascript">
+if (window.hljs) {
+  hljs.configure({languages: []});
+  hljs.initHighlightingOnLoad();
+  if (document.readyState && document.readyState === "complete") {
+    window.setTimeout(function() { hljs.initHighlighting(); }, 0);
+  }
+}
+</script>
+
+
+
+
+
+
+
+
+
+<style type = "text/css">
+.main-container {
+  max-width: 940px;
+  margin-left: auto;
+  margin-right: auto;
+}
+img {
+  max-width:100%;
+}
+.tabbed-pane {
+  padding-top: 12px;
+}
+.html-widget {
+  margin-bottom: 20px;
+}
+button.code-folding-btn:focus {
+  outline: none;
+}
+summary {
+  display: list-item;
+}
+details > summary > p:only-child {
+  display: inline;
+}
+pre code {
+  padding: 0;
+}
+</style>
+
+
+<style type="text/css">
+.dropdown-submenu {
+  position: relative;
+}
+.dropdown-submenu>.dropdown-menu {
+  top: 0;
+  left: 100%;
+  margin-top: -6px;
+  margin-left: -1px;
+  border-radius: 0 6px 6px 6px;
+}
+.dropdown-submenu:hover>.dropdown-menu {
+  display: block;
+}
+.dropdown-submenu>a:after {
+  display: block;
+  content: " ";
+  float: right;
+  width: 0;
+  height: 0;
+  border-color: transparent;
+  border-style: solid;
+  border-width: 5px 0 5px 5px;
+  border-left-color: #cccccc;
+  margin-top: 5px;
+  margin-right: -10px;
+}
+.dropdown-submenu:hover>a:after {
+  border-left-color: #adb5bd;
+}
+.dropdown-submenu.pull-left {
+  float: none;
+}
+.dropdown-submenu.pull-left>.dropdown-menu {
+  left: -100%;
+  margin-left: 10px;
+  border-radius: 6px 0 6px 6px;
+}
+</style>
+
+<script type="text/javascript">
+// manage active state of menu based on current page
+$(document).ready(function () {
+  // active menu anchor
+  href = window.location.pathname
+  href = href.substr(href.lastIndexOf('/') + 1)
+  if (href === "")
+    href = "index.html";
+  var menuAnchor = $('a[href="' + href + '"]');
+
+  // mark the anchor link active (and if it's in a dropdown, also mark that active)
+  var dropdown = menuAnchor.closest('li.dropdown');
+  if (window.bootstrap) { // Bootstrap 4+
+    menuAnchor.addClass('active');
+    dropdown.find('> .dropdown-toggle').addClass('active');
+  } else { // Bootstrap 3
+    menuAnchor.parent().addClass('active');
+    dropdown.addClass('active');
+  }
+
+  // Navbar adjustments
+  var navHeight = $(".navbar").first().height() + 15;
+  var style = document.createElement('style');
+  var pt = "padding-top: " + navHeight + "px; ";
+  var mt = "margin-top: -" + navHeight + "px; ";
+  var css = "";
+  // offset scroll position for anchor links (for fixed navbar)
+  for (var i = 1; i <= 6; i++) {
+    css += ".section h" + i + "{ " + pt + mt + "}\n";
+  }
+  style.innerHTML = "body {" + pt + "padding-bottom: 40px; }\n" + css;
+  document.head.appendChild(style);
+});
+</script>
+
+<!-- tabsets -->
+
+<style type="text/css">
+.tabset-dropdown > .nav-tabs {
+  display: inline-table;
+  max-height: 500px;
+  min-height: 44px;
+  overflow-y: auto;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.tabset-dropdown > .nav-tabs > li.active:before, .tabset-dropdown > .nav-tabs.nav-tabs-open:before {
+  content: "\e259";
+  font-family: 'Glyphicons Halflings';
+  display: inline-block;
+  padding: 10px;
+  border-right: 1px solid #ddd;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li.active:before {
+  content: "\e258";
+  font-family: 'Glyphicons Halflings';
+  border: none;
+}
+
+.tabset-dropdown > .nav-tabs > li.active {
+  display: block;
+}
+
+.tabset-dropdown > .nav-tabs > li > a,
+.tabset-dropdown > .nav-tabs > li > a:focus,
+.tabset-dropdown > .nav-tabs > li > a:hover {
+  border: none;
+  display: inline-block;
+  border-radius: 4px;
+  background-color: transparent;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li {
+  display: block;
+  float: none;
+}
+
+.tabset-dropdown > .nav-tabs > li {
+  display: none;
+}
+</style>
+
+<!-- code folding -->
+
+
+
+
+</head>
+
+<body>
+
+
+<div class="container-fluid main-container">
+
+
+
+
+<div class="navbar navbar-default  navbar-fixed-top" role="navigation">
+  <div class="container">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-bs-toggle="collapse" data-target="#navbar" data-bs-target="#navbar">
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a class="navbar-brand" href="index.html">Hello World3 (β)</a>
+    </div>
+    <div id="navbar" class="navbar-collapse collapse">
+      <ul class="nav navbar-nav">
+        <li>
+  <a href="index.html">Home</a>
+</li>
+<li>
+  <a href="about.html">About</a>
+</li>
+      </ul>
+      <ul class="nav navbar-nav navbar-right">
+        <li>
+  <a href="https://github.com/takayuki1997/HW2beta">
+    <span class="fa fa-github fa-lg"></span>
+     
+  </a>
+</li>
+      </ul>
+    </div><!--/.nav-collapse -->
+  </div><!--/.container -->
+</div><!--/.navbar -->
+
+<div id="header">
+
+
+
+<h1 class="title toc-ignore">BERTによる科研費審査区分の推定</h1>
+
+</div>
+
+
+<p><br></p>
+<div id="section" class="section level1 row">
+<h1 class="row"></h1>
+<div id="section-1" class="section level2 col-md-8">
+<h2 class="col-md-8"></h2>
+<div id="about" class="section level3">
+<h3>About</h3>
+<p>このサイトは自然言語処理モデル『BERT』を用いて、学術文書から研究分野（科研費審査区分（大区分））を推定します。</p>
+<button type="button" style="float:left; margin-right:10px">
+ファイルを選択
+</button>
+<p><button type="button">実行する</button></p>
+</div>
+</div>
+<div id="section-2" class="section level2 col-md-4">
+<h2 class="col-md-4"></h2>
+<div id="開発者" class="section level3">
+<h3>開発者</h3>
+<p>できれば開発者として荻さんの写真やプロフィールなども合わせて書かれると良いのではないかと思います。</p>
+<p><br></p>
+</div>
+</div>
+</div>
+<div id="section-3" class="section level1 row">
+<h1 class="row"></h1>
+<div id="section-4" class="section level2 col-md-12">
+<h2 class="col-md-12"></h2>
+<div id="出力" class="section level3">
+<h3>出力</h3>
+<div class="datatables html-widget html-fill-item-overflow-hidden html-fill-item" id="htmlwidget-4587f63335cc48cf6482" style="width:100%;height:auto;"></div>
+<script type="application/json" data-for="htmlwidget-4587f63335cc48cf6482">{"x":{"filter":"none","vertical":false,"data":[["1","2","3","4","5"],["腸の管腔側を被覆する粘膜バリアの機能破綻は、腸内細菌の粘膜層通過および腸上皮への定着を引き起こし、炎症性腸疾患などの原因となりうる。膵臓で合成されたGP2は、腸管管腔へ移行し線毛タンパク質FimHを持つ腸内細菌と結合することで、腸上皮への定着と炎症亢進を抑制する。FimHは、GP2のN型糖鎖を認識し結合すると想定されるが、その結合様式は不明である。本研究では、生化学的、物理化学的手法を用いてGP2-FimHの特異的認識機構を糖鎖構造-結合親和性相関の観点から明らかにする。","本研究は、1920年代の宮城女学院在学時代に英語で詩を書き、英国詩人エンプソン（William Empson,1906-1984）に英語詩の才能を評価された畠山千代子（1905-1982）について、資料保全を重視しながら、彼女の詩的営為を公にするものである。方法としては、資料目録化作業を優先させる。その上で、日本詩壇とは離れたところで創作された彼女の詩の様式や方法を解明する。具体的には書簡・草稿・ノートの翻刻によって詩の生成過程を明らかにし、また宣教師との手紙も調査して宮城女学校の英文学教育の先駆性を見定めながら、白鳥省吾主宰『地上楽園』誌上で郷土詩に絡め取られていく日本語詩の変容過程も辿る。","本研究が対象とする「アファンタジア（aphantasia）」は2015年に提唱された新たな事例で，実際の知覚は機能しているが心的イメージを形成しにくい特質である。現在，成人を対象とした研究が展開されており，その知覚および心的イメージの特徴について知見が得られ始めている。アファンタジアは先天的な特質であるため，幼児期・児童期でも既に心的イメージ形成の困難さが生じている可能性が推測される。本研究は，幼児期・児童期におけるアファンタジアの新奇事例を提唱し，その定義を可視化できるアセスメントツールを開発しようとするものである。","製品の長期使用の促進は、サーキュラー・エコノミーで重要な施策として示されており、その促進に向けた経済システムや環境影響評価について研究が進んでいる。一方でその促進に際しては、それを支える産業や企業の経済的な持続可能性も考慮する必要があるが、これまでの研究ではそうした分析は十分に行われていない。\nそこで、本研究では修理サービスを対象に、環境経済学と産業連関分析の手法を応用し、消費者の需要も考慮したうえで、修理サービスによる長期使用促進の経済システムが経済と環境に与える影響について定量的に示す。また、長期使用促進の経済システムをどのように、そしてどの程度発展していけばよいかについての指針を示す。","近年、不飽和脂肪酸の二重結合がエポキシ化された、エポキシ脂肪酸が食品の加工工程で生成されることが報告されている。エポキシ脂肪酸はヒトへの有害性が懸念されているが、食事から摂取したエポキシ脂肪酸がどのように体内に吸収され、代謝されていくのかは明らかになっていない。そこで本研究では、安定同位体ラベル化エポキシ脂肪酸を動物に投与し、各種質量分析計で測定することで、①エポキシ脂肪酸の各種臓器・組織への分布、②エポキシ脂肪酸の体内代謝を明らかにし、エポキシ脂肪酸のヒトへの有害性を解明する一助とする。"],[0,0,0,0,0],[0,0,0,0,0],[0,0,0,0,0],[0,0,0,0,0],[0,0,0,0,0],[0,0,0,0,0],[0,0,0,0,0],[0,0,0,0,0],[0,0,0,0,0],[0,0,0,0,0],[0,0,0,0,0]],"container":"<table class=\"cell-border stripe\">\n  <thead>\n    <tr>\n      <th> <\/th>\n      <th>TEXT<\/th>\n      <th>A<\/th>\n      <th>B<\/th>\n      <th>C<\/th>\n      <th>D<\/th>\n      <th>E<\/th>\n      <th>F<\/th>\n      <th>G<\/th>\n      <th>H<\/th>\n      <th>I<\/th>\n      <th>J<\/th>\n      <th>K<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"autoWidth":false,"columnDefs":[{"className":"dt-right","targets":[2,3,4,5,6,7,8,9,10,11,12]},{"orderable":false,"targets":0}],"order":[],"orderClasses":false}},"evals":[],"jsHooks":[]}</script>
+</div>
+</div>
+</div>
+
+
+
+
+</div>
+
+<script>
+
+// add bootstrap table styles to pandoc tables
+function bootstrapStylePandocTables() {
+  $('tr.odd').parent('tbody').parent('table').addClass('table table-condensed');
+}
+$(document).ready(function () {
+  bootstrapStylePandocTables();
+});
+
+
+</script>
+
+<!-- tabsets -->
+
+<script>
+$(document).ready(function () {
+  window.buildTabsets("TOC");
+});
+
+$(document).ready(function () {
+  $('.tabset-dropdown > .nav-tabs > li').click(function () {
+    $(this).parent().toggleClass('nav-tabs-open');
+  });
+});
+</script>
+
+<!-- code folding -->
+
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>
